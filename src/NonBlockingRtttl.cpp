@@ -6,6 +6,9 @@
 
 #include "Arduino.h"
 #include "NonBlockingRtttl.h"
+#if defined(ESP32)
+#include "driver/ledc.h"
+#endif
 
 /*********************************************************
  * RTTTL Library data
@@ -72,8 +75,25 @@ void begin(byte iPin, const char * iSongBuffer, byte iLoopCount, unsigned long i
   //init values
   pin = iPin;
   #if defined(ESP32)
-  ledcSetup(0, 1000, 10); // resolution always seems to be 10bit, no matter what is given
-  ledcAttachPin(pin, 0);
+  ledc_channel_config_t ledc_channel = {
+      .gpio_num   = (gpio_num_t)pin,
+      .speed_mode = LEDC_LOW_SPEED_MODE,
+      .channel    = LEDC_CHANNEL_0,
+      .intr_type  = LEDC_INTR_DISABLE,
+      .timer_sel  = LEDC_TIMER_0,
+      .duty       = 0,
+      .hpoint     = 0
+  };
+  ledc_channel_config(&ledc_channel);
+
+  ledc_timer_config_t ledc_timer = {
+      .speed_mode      = LEDC_LOW_SPEED_MODE,
+      .duty_resolution = LEDC_TIMER_10_BIT,
+      .timer_num       = LEDC_TIMER_0,
+      .freq_hz         = 1000,
+      .clk_cfg         = LEDC_AUTO_CLK
+  };
+  ledc_timer_config(&ledc_timer);
   #endif
   buffer = iSongBuffer;
   bufferIndex = 0;
